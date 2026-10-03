@@ -1,0 +1,14 @@
+{% extends "base.html" %}{% block body %}
+<div class="card" style="max-width:420px;margin:8vh auto">
+{% if mode == 'error' %}
+  <h2>{{ err.code }} – {{ err.name }}</h2><p>You can't access this page or the request was invalid.</p><a class="btn" href="{{ url_for('index') }}">Go home</a>
+{% else %}
+  <h2>{{ 'Create student account' if mode=='register' else 'Welcome back' }}</h2>
+  <form method="post"><input type="hidden" name="csrf" value="{{ csrf_token() }}">
+  {% if mode=='register' %}<label>Full name</label><input name="name" required maxlength="80">{% endif %}
+  <label>Email</label><input type="email" name="email" required>
+  <label>Password</label><input type="password" name="password" required minlength="8">
+  <button style="width:100%">{{ 'Register' if mode=='register' else 'Login' }}</button></form>
+  <p>{% if mode=='register' %}Have an account? <a href="{{ url_for('login') }}">Login</a>
+  {% else %}New student? <a href="{{ url_for('register') }}">Register</a>{% endif %}</p>
+{% endif %}</div>{% endblock %}

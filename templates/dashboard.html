@@ -1,0 +1,42 @@
+{% extends "base.html" %}{% block body %}
+
+{% if user.role == 'super_admin' %}
+<div class="grid">
+ <div class="card stat">{{ users|length }}<small>Users</small></div>
+ <div class="card stat">{{ consults|length }}<small>Consultations</small></div>
+ <div class="card stat">{{ consults|selectattr('status','equalto','pending')|list|length }}<small>Pending</small></div>
+</div>
+<div class="card"><h3>Add Medical Expert / Admin</h3>
+<form method="post" action="{{ url_for('admin_create_user') }}"><input type="hidden" name="csrf" value="{{ csrf_token() }}">
+<div class="grid"><input name="name" placeholder="Name" required><input type="email" name="email" placeholder="Email" required>
+<input type="password" name="password" placeholder="Password (8+)" minlength="8" required>
+<select name="role"><option value="expert">Medical Expert</option><option value="super_admin">Super Admin</option></select></div>
+<button>Create user</button></form></div>
+<div class="card"><h3>All Users</h3><table><thead><tr><th>Name</th><th>Email</th><th>Role</th><th></th></tr></thead><tbody>
+{% for x in users %}<tr><td>{{x.name}}</td><td>{{x.email}}</td><td><span class="badge">{{x.role}}</span></td>
+<td>{% if x.id != user.id %}<form class="inline" method="post" action="{{ url_for('admin_delete_user', uid=x.id) }}" onsubmit="return confirm('Delete this user?')">
+<input type="hidden" name="csrf" value="{{ csrf_token() }}"><button class="danger">Delete</button></form>{% endif %}</td></tr>{% endfor %}</tbody></table></div>
+{% endif %}
+
+{% if user.role == 'student' %}
+<div class="card"><h3>Book a Consultation</h3>
+<form method="post" action="{{ url_for('consult_new') }}"><input type="hidden" name="csrf" value="{{ csrf_token() }}">
+<select name="expert_id" required><option value="">Choose a Medical Expert…</option>{% for e in experts %}<option value="{{e.id}}">{{e.name}}</option>{% endfor %}</select>
+<input name="topic" placeholder="Topic" maxlength="120" required>
+<textarea name="details" rows="3" maxlength="1000" placeholder="Describe your concern"></textarea>
+<input type="datetime-local" name="schedule" required><button>Request</button></form></div>
+{% endif %}
+
+<div class="card"><h3>{{ 'My Consultations' if user.role=='student' else 'Consultations' }}</h3>
+<div style="overflow-x:auto"><table><thead><tr><th>Student</th><th>Expert</th><th>Topic</th><th>When</th><th>Status</th><th>Action / Reply</th></tr></thead><tbody>
+{% for c in consults %}<tr><td>{{c.student_name}}</td><td>{{c.expert_name}}</td><td>{{c.topic}}<br><small>{{c.details}}</small></td><td>{{c.schedule.replace('T',' ')}}</td>
+<td><span class="badge {{c.status}}">{{c.status}}</span></td><td>
+{% if user.role=='expert' and c.status in ('pending','approved') %}
+<form method="post" action="{{ url_for('consult_respond', cid=c.id) }}"><input type="hidden" name="csrf" value="{{ csrf_token() }}">
+<input name="response" placeholder="Advice / note" maxlength="1000">
+<select name="status"><option value="approved">Approve</option><option value="completed">Complete</option><option value="declined">Decline</option></select><button>Save</button></form>
+{% elif user.role=='student' and c.status=='pending' %}
+<form method="post" action="{{ url_for('consult_cancel', cid=c.id) }}"><input type="hidden" name="csrf" value="{{ csrf_token() }}"><button class="danger">Cancel</button></form>
+{% else %}{{ c.response or '—' }}{% endif %}</td></tr>
+{% else %}<tr><td colspan="6">No consultations yet.</td></tr>{% endfor %}</tbody></table></div></div>
+{% endblock %}
